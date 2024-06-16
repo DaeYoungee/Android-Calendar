@@ -62,7 +62,7 @@ fun CustomCalendar(
                 onNextMonth = { currentDate = currentDate.plusMonths(1).withDayOfMonth(1) }) {
                 currentDate = currentDate.minusMonths(1).withDayOfMonth(1)
             }
-            CalendarBody(currentDate = currentDate, today = currentDate)
+            CalendarBody(currentDate = currentDate)
         }
     }
 }
@@ -96,10 +96,11 @@ fun CalendarHeader(yearMonth: String, onNextMonth: () -> Unit, onPreviousMonth: 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarBody(currentDate: LocalDate, today: LocalDate) {
+fun CalendarBody(currentDate: LocalDate) {
     val firstDayOfWeek = currentDate.withDayOfMonth(1).dayOfWeek.value // 첫 주에 시작하는 요일 ex) 5(금요일)
     val lastDay = currentDate.lengthOfMonth()        // 마지막 일자, ex) 31
     val days = IntRange(1, lastDay).toList()    // ex) 1, 2, 3, 4, ... , 31
+    val today = LocalDate.now()
 
     var selectedDate: LocalDate? by remember {
         mutableStateOf(null)

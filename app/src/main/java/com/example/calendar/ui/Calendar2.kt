@@ -63,17 +63,18 @@ fun Calendar2() {
                 onNextMonth = { currentDate = currentDate.plusMonths(1).withDayOfMonth(1) }) {
                 currentDate = currentDate.minusMonths(1).withDayOfMonth(1)
             }
-            CalendarBody2(currentDate = currentDate, today = currentDate)
+            CalendarBody2(currentDate = currentDate)
         }
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarBody2(currentDate: LocalDate, today: LocalDate) {
+fun CalendarBody2(currentDate: LocalDate) {
     val firstDayOfWeek = currentDate.withDayOfMonth(1).dayOfWeek.value // 첫 주에 시작하는 요일 ex) 5(금요일)
     val lastDay = currentDate.lengthOfMonth()        // 마지막 일자, ex) 31
     val days = IntRange(1, lastDay).toList()    // ex) 1, 2, 3, 4, ... , 31
+    val today = LocalDate.now()
 
     var selectedDate: LocalDate? by remember {
         mutableStateOf(null)
@@ -98,6 +99,7 @@ fun CalendarBody2(currentDate: LocalDate, today: LocalDate) {
                 // 이번 달의 날짜를 day로 치환하여 CalendarDay로 넘긴다. ex) 2024-05-01
                 val date = currentDate.withDayOfMonth(day)
                 val selected = selectedIds.value.contains(day)
+
                 CalendarDay2(
                     day = date,
                     isToday = (date == today),
@@ -107,13 +109,11 @@ fun CalendarBody2(currentDate: LocalDate, today: LocalDate) {
                         .weight(1f)
                         .aspectRatio(1f)
                         .noRippleClickable {
-                            Log.d("daeyoung", "before selectedIds: ${selectedIds.value}")
                             selectedIds.value = if (selected) {
                                 selectedIds.value.minus(day)
                             } else {
                                 selectedIds.value.plus(day)
                             }
-                            Log.d("daeyoung", "after selectedIds: ${selectedIds.value}")
                         }
 //                        .pointerInput(Unit) {
 //                            detectTapGestures {
