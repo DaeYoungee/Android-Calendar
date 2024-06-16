@@ -26,9 +26,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +50,6 @@ import androidx.compose.ui.text.TextStyle
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Calendar1Screen() {
-
 
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -127,10 +128,10 @@ fun CalendarBody(currentDate: LocalDate, today: LocalDate) {
     Column {
         HorizontalDayOfWeek()
         LazyVerticalGrid(columns = GridCells.Fixed(7)) {
-            for (i in 1 .. firstDayOfWeek) { // 일요일부터 시작하니까 .. 사용, 월요일부터 시작하면 until 사용
+            for (i in 1..firstDayOfWeek) { // 일요일부터 시작하니까 .. 사용, 월요일부터 시작하면 until 사용
                 item { Box(modifier = Modifier.weight(1f)) }
             }
-            items(key = {day -> day}, items = days) { day ->
+            items(key = { day -> day }, items = days) { day ->
                 // 이번 달의 날짜를 day로 치환하여 CalendarDay로 넘긴다. ex) 2024-05-01
                 val date = currentDate.withDayOfMonth(day)
                 CalendarDay(
@@ -140,14 +141,13 @@ fun CalendarBody(currentDate: LocalDate, today: LocalDate) {
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
-                        .draggable(orientation = Ori)
 //                        .pointerInput(Unit) {
 //                            detectTapGestures {
 //                                Log.d("daeyoung", "tab: $it")
 //                            }
 //                        }
 
-                ){ selectedDate = date }
+                ) { selectedDate = if (selectedDate == null || selectedDate != date) date else null }
             }
         }
     }
@@ -182,7 +182,13 @@ fun HorizontalDayOfWeek() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarDay(day: LocalDate, isToday: Boolean, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+fun CalendarDay(
+    day: LocalDate,
+    isToday: Boolean,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
 //    val dayStyle = remember {
 //        androidx.compose.ui.text.TextStyle(
 //            color = if (selected || isToday) Color.White else Color.Black
@@ -190,22 +196,24 @@ fun CalendarDay(day: LocalDate, isToday: Boolean, selected: Boolean, modifier: M
 //    }
     val dayStyle =
         androidx.compose.ui.text.TextStyle(
-            color = if (selected || isToday) Color.White else Color.Black
+            color =
+                if (selected || isToday) Color.White else Color.Black
         )
 
 //    val containerColor = remember {
 //        if (selected) Color.Red else if (isToday) Color.Gray.copy(0.7f)  else Color.Transparent
 //    }
 
-//    Box(modifier = modifier.noRippleClickable { onClick() }) {
-    Box(modifier = modifier) {
+    Box(modifier = modifier.noRippleClickable { onClick() }) {
         Card(
             modifier = Modifier
                 .fillMaxSize()
                 .align(Alignment.Center),
             shape = CircleShape,
             colors = CardDefaults.cardColors(
-                containerColor = if (selected) Color.Red else if (isToday) Color.Gray.copy(0.7f)  else Color.Transparent,
+                containerColor =
+                    if (selected) Color.Red else if (isToday) Color.Gray.copy(0.7f) else Color.Transparent
+
             )
         ) {}
         Text(
