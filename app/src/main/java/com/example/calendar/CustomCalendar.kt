@@ -1,7 +1,10 @@
 package com.example.calendar
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,27 +42,18 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.ui.text.TextStyle
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Calendar1Screen() {
-    var currentDate by remember {
-        mutableStateOf(LocalDate.now())
-    }
-    var selectedDate by remember {
-        mutableStateOf(LocalDate.now())
-    }
+
+
 
     Column(modifier = Modifier.fillMaxSize()) {
 
-        CustomCalendar(
-            currentDate = currentDate,
-            today = selectedDate,
-            setMonth = { currentDate = it }) {
-            selectedDate = it
-        }
+        CustomCalendar()
     }
 }
 
@@ -65,12 +61,12 @@ fun Calendar1Screen() {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CustomCalendar(
-    currentDate: LocalDate = LocalDate.now(),
-    today: LocalDate,
-    setMonth: (LocalDate) -> Unit,
-    onSelectedDate: (LocalDate) -> Unit
 //    config: HorizontalCalendarConfig = HorizontalCalendarConfig(),
 ) {
+    var currentDate by remember {
+        mutableStateOf(LocalDate.now())
+    }
+
     val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
 
     Card(
@@ -82,15 +78,12 @@ fun CustomCalendar(
     ) {
         Column {
             CalendarHeader(yearMonth = currentDate.format(dateTimeFormatter),
-                onNextMonth = { setMonth(currentDate.plusMonths(1).withDayOfMonth(1)) }) {
-                setMonth(currentDate.minusMonths(1).withDayOfMonth(1))
+                onNextMonth = { currentDate = currentDate.plusMonths(1).withDayOfMonth(1) }) {
+                currentDate = currentDate.minusMonths(1).withDayOfMonth(1)
             }
-            CalendarBody(currentDate = currentDate, today = today) {
-                onSelectedDate(it)
-            }
+            CalendarBody(currentDate = currentDate, today = currentDate)
         }
     }
-
 }
 
 @Composable
@@ -122,26 +115,39 @@ fun CalendarHeader(yearMonth: String, onNextMonth: () -> Unit, onPreviousMonth: 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarBody(currentDate: LocalDate, today: LocalDate, onSelectedDate: (LocalDate) -> Unit) {
+fun CalendarBody(currentDate: LocalDate, today: LocalDate) {
     val firstDayOfWeek = currentDate.withDayOfMonth(1).dayOfWeek.value // 첫 주에 시작하는 요일 ex) 5(금요일)
     val lastDay = currentDate.lengthOfMonth()        // 마지막 일자, ex) 31
     val days = IntRange(1, lastDay).toList()    // ex) 1, 2, 3, 4, ... , 31
+
+    var selectedDate: LocalDate? by remember {
+        mutableStateOf(null)
+    }
+
     Column {
         HorizontalDayOfWeek()
         LazyVerticalGrid(columns = GridCells.Fixed(7)) {
             for (i in 1 .. firstDayOfWeek) { // 일요일부터 시작하니까 .. 사용, 월요일부터 시작하면 until 사용
                 item { Box(modifier = Modifier.weight(1f)) }
             }
-            items(days) { day ->
+            items(key = {day -> day}, items = days) { day ->
                 // 이번 달의 날짜를 day로 치환하여 CalendarDay로 넘긴다. ex) 2024-05-01
                 val date = currentDate.withDayOfMonth(day)
                 CalendarDay(
                     day = date,
-                    selected = (date == today),
+                    isToday = (date == today),
+                    selected = (date == selectedDate),
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
-                ){ onSelectedDate(date) }
+                        .draggable(orientation = Ori)
+//                        .pointerInput(Unit) {
+//                            detectTapGestures {
+//                                Log.d("daeyoung", "tab: $it")
+//                            }
+//                        }
+
+                ){ selectedDate = date }
             }
         }
     }
@@ -176,19 +182,30 @@ fun HorizontalDayOfWeek() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarDay(day: LocalDate, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val dayStyle = androidx.compose.ui.text.TextStyle(
-        color = if (!selected) Color.Black else Color.White
-    )
+fun CalendarDay(day: LocalDate, isToday: Boolean, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+//    val dayStyle = remember {
+//        androidx.compose.ui.text.TextStyle(
+//            color = if (selected || isToday) Color.White else Color.Black
+//        )
+//    }
+    val dayStyle =
+        androidx.compose.ui.text.TextStyle(
+            color = if (selected || isToday) Color.White else Color.Black
+        )
 
-    Box(modifier = modifier.noRippleClickable { onClick() }) {
+//    val containerColor = remember {
+//        if (selected) Color.Red else if (isToday) Color.Gray.copy(0.7f)  else Color.Transparent
+//    }
+
+//    Box(modifier = modifier.noRippleClickable { onClick() }) {
+    Box(modifier = modifier) {
         Card(
             modifier = Modifier
                 .fillMaxSize()
                 .align(Alignment.Center),
             shape = CircleShape,
             colors = CardDefaults.cardColors(
-                containerColor = if (!selected) Color.Transparent else Color.Red,
+                containerColor = if (selected) Color.Red else if (isToday) Color.Gray.copy(0.7f)  else Color.Transparent,
             )
         ) {}
         Text(
@@ -196,7 +213,6 @@ fun CalendarDay(day: LocalDate, selected: Boolean, modifier: Modifier, onClick: 
             modifier = Modifier.align(Alignment.Center),
             style = dayStyle
         )
-
     }
 }
 
@@ -225,6 +241,6 @@ fun main() {
 
 
     DayOfWeek.values().forEach { dayOfWeek ->
-        println(dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.KOREAN))
+        println(dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, Locale.KOREAN))
     }
 }
